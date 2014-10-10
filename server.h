@@ -16,6 +16,7 @@ typedef struct Server
     GtkWidget *statusButton;
     GtkWidget *plainTextLog;
     GtkWidget *cipherTextLog;
+    GtkWidget *sharedKey;
 } Server;
 
 struct Server* server_init_new(
@@ -23,7 +24,8 @@ struct Server* server_init_new(
     GtkWidget *plainTextLog,
     GtkWidget *cipherTextLog,
     GtkWidget *portNumber,
-    GtkWidget *serverName
+    GtkWidget *serverName,
+    GtkWidget *sharedKey
 );
 void server_free(struct Server *server);
 void server_send(struct Server *server, const char *msg);

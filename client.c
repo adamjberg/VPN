@@ -90,7 +90,8 @@ Client* client_init_new(
     GtkWidget *plainTextLog,
     GtkWidget *cipherTextLog,
     GtkWidget *portNumber,
-    GtkWidget *serverName
+    GtkWidget *serverName,
+    GtkWidget *sharedKey
 )
 {
     Client *this = malloc(sizeof(Client));
@@ -98,6 +99,7 @@ Client* client_init_new(
     this->plainTextLog = plainTextLog;
     this->cipherTextLog = cipherTextLog;
     this->statusButton = statusButton;
+    this->sharedKey = sharedKey;
 
     const char *portNumberString = gtk_entry_get_text(GTK_ENTRY(portNumber));
     int port = atoi(portNumberString);

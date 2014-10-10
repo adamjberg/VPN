@@ -118,7 +118,8 @@ struct Server* server_init_new(
     GtkWidget *plainTextLog,
     GtkWidget *cipherTextLog,
     GtkWidget *portNumber,
-    GtkWidget *serverName
+    GtkWidget *serverName,
+    GtkWidget *sharedKey
 )
 {
     Server *this = malloc(sizeof(Server));
@@ -126,6 +127,7 @@ struct Server* server_init_new(
     this->plainTextLog = plainTextLog;
     this->cipherTextLog = cipherTextLog;
     this->statusButton = statusButton;
+    this->sharedKey = sharedKey;
     this->bev = NULL;
 
     this->eventBase = event_base_new();

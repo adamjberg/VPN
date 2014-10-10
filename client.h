@@ -16,6 +16,7 @@ typedef struct Client
     GtkWidget *statusButton;
     GtkWidget *plainTextLog;
     GtkWidget *cipherTextLog;
+    GtkWidget *sharedKey;
 } Client;
 
 struct Client* client_init_new(
@@ -23,7 +24,8 @@ struct Client* client_init_new(
     GtkWidget *plainTextLog,
     GtkWidget *cipherTextLog,
     GtkWidget *portNumber,
-    GtkWidget *serverName
+    GtkWidget *serverName,
+    GtkWidget *sharedKey
 );
 void client_send(struct Client *client, const char *msg);
 void client_free(struct Client *client);

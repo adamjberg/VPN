@@ -52,7 +52,7 @@ typedef struct SendButtonData
 
 void initServer()
 {
-    server = server_init_new(serverStatusButton, plainTextLog, cipherTextLog, portNumber, serverName);
+    server = server_init_new(serverStatusButton, plainTextLog, cipherTextLog, portNumber, serverName, sharedKey);
 }
 
 void closeServer()
@@ -62,7 +62,7 @@ void closeServer()
 
 void initClient()
 {
-    client = client_init_new(clientStatusButton, plainTextLog, cipherTextLog, portNumber, serverName);
+    client = client_init_new(clientStatusButton, plainTextLog, cipherTextLog, portNumber, serverName, sharedKey);
 }
 
 void closeClient()
