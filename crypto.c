@@ -53,3 +53,19 @@ int private_decrypt(unsigned char * enc_data,int data_len,unsigned char * key, u
     int  result = RSA_private_decrypt(data_len,enc_data,decrypted,rsa,padding);
     return result;
 }
+
+RSA * generate_key_pair()
+{
+    int result = 0;
+    RSA * rsa = RSA_new();
+    BIGNUM * bne = NULL;
+    bne = BN_new();
+
+    result = RSA_generate_key_ex(rsa, 2048, bne ,NULL);
+    if (result != 1) 
+    {
+        printf("Failed to generate RSA key...");
+        return NULL;
+    }
+    return rsa;
+}
