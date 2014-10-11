@@ -11,6 +11,7 @@
 
 #include <gtk/gtk.h>
 
+#include "crypto.h"
 #include "utils.h"
 #include "client.h"
 
@@ -37,23 +38,75 @@ void set_tcp_no_delay(evutil_socket_t fd)
 void client_readcb(struct bufferevent *bev, void *ctx)
 {
     Client *this = ctx;
+
+    switch(this->authState)
+    {
+        case AUTH_STATE_AUTHENTICATED:
+            clientReadStateAuthenticated(this);
+            break;
+        case AUTH_STATE_TEST:
+            clientReadStateTestAuthentication(this);
+            break;
+        default:
+            clientReadStateNoAuthentication(this);
+            break;
+    }
+}
+
+// The server is authenticated now write out the messages as they come in
+void clientReadStateAuthenticated(Client *this)
+{
     struct evbuffer *input;
     char *line;
     size_t n;
-    input = bufferevent_get_input(bev);
-
+    input = bufferevent_get_input(this->bev);
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         writeLine(this->plainTextLog, line);
         free(line);
     }
+}
 
-    if (evbuffer_get_length(input) >= MAX_LINE) {
-        /* Too long; just process what there is and go on so that the buffer
-         * doesn't grow infinitely long. */
-        char buf[1024];
-        while (evbuffer_get_length(input)) {
-            int n = evbuffer_remove(input, buf, sizeof(buf));
-        }
+// The server should be sending E("", Rb, g^a mod p, KAB)
+void clientReadStateTestAuthentication(Client *this)
+{
+    struct evbuffer *input;
+    char *line;
+    size_t n;
+    input = bufferevent_get_input(this->bev);
+    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+        free(line);
+    }
+}
+
+// The server should be sending us their public key
+// and E("Bob", Ra, g^b mod p, KAB)
+void clientReadStateNoAuthentication(Client *this)
+{
+    struct evbuffer *input;
+    char *line;
+    size_t len;
+    input = bufferevent_get_input(this->bev);
+
+    // Rb
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    unsigned char *Rb = malloc(len);
+    memcpy(Rb, line, len);
+
+    printf("RB: %s", Rb);
+
+    // E(Ra)
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+
+    // E(g^b mod p)
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+
+    // E(KAB)
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+
+
+
+    while ((line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF))) {
+        free(line);
     }
 }
 
@@ -65,6 +118,7 @@ void client_eventcb(struct bufferevent *bev, short events, void *ptr)
         gtk_button_set_label(GTK_BUTTON(this->statusButton), "Connected");
         evutil_socket_t fd = bufferevent_getfd(bev);
         set_tcp_no_delay(fd);
+        client_send(this, (char *) this->publicKey);
     }
     else if (events & BEV_EVENT_ERROR)
     {
@@ -100,6 +154,8 @@ Client* client_init_new(
     this->cipherTextLog = cipherTextLog;
     this->statusButton = statusButton;
     this->sharedKey = sharedKey;
+
+    generate_key(this->publicKey, this->privateKey);
 
     const char *portNumberString = gtk_entry_get_text(GTK_ENTRY(portNumber));
     int port = atoi(portNumberString);

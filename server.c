@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include "crypto.h"
 #include "utils.h"
 #include "server.h"
 
@@ -37,23 +38,65 @@ void
 server_readcb(struct bufferevent *bev, void *ctx)
 {
     Server *this = ctx;
+
+    switch(this->authState)
+    {
+        case AUTH_STATE_AUTHENTICATED:
+            serverReadStateAuthenticated(this);
+            break;
+        case AUTH_STATE_TEST:
+            serverReadStateTestAuthentication(this);
+            break;
+        default:
+            serverReadStateNoAuthentication(this);
+            break;
+    }
+}
+
+// The client is authenticated now write out the messages as they come in
+void serverReadStateAuthenticated(Server *this)
+{
     struct evbuffer *input;
     char *line;
     size_t n;
-    input = bufferevent_get_input(bev);
-
+    input = bufferevent_get_input(this->bev);
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         writeLine(this->plainTextLog, line);
         free(line);
     }
+}
 
-    if (evbuffer_get_length(input) >= MAX_LINE) {
-        /* Too long; just process what there is and go on so that the buffer
-         * doesn't grow infinitely long. */
-        char buf[1024];
-        while (evbuffer_get_length(input)) {
-            int n = evbuffer_remove(input, buf, sizeof(buf));
-        }
+// The client should be sending E("Alice", Rb, g^a mod p, KAB)
+void serverReadStateTestAuthentication(Server *this)
+{
+    struct evbuffer *input;
+    char *line;
+    size_t n;
+    input = bufferevent_get_input(this->bev);
+    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+        free(line);
+    }
+}
+
+// The client should be sending us their public key Ra
+void serverReadStateNoAuthentication(Server *this)
+{
+    struct evbuffer *input;
+    char *line;
+    size_t len;
+    input = bufferevent_get_input(this->bev);
+
+    // Ra
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    unsigned char *clientPublicKey = malloc(len);
+    memcpy(clientPublicKey, line, len);
+    unsigned char *message = NULL;
+    public_encrypt(clientPublicKey, len, clientPublicKey, message);
+
+    server_send(this, (char *) message);
+
+    while ((line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF))) {
+        free(line);
     }
 }
 
@@ -128,7 +171,10 @@ struct Server* server_init_new(
     this->cipherTextLog = cipherTextLog;
     this->statusButton = statusButton;
     this->sharedKey = sharedKey;
+    this->authState = AUTH_STATE_NONE;
     this->bev = NULL;
+
+    generate_key(this->publicKey, this->privateKey);
 
     this->eventBase = event_base_new();
     if (!this->eventBase)
