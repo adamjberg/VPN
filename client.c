@@ -83,31 +83,72 @@ void clientReadStateTestAuthentication(Client *this)
 void clientReadStateNoAuthentication(Client *this)
 {
     struct evbuffer *input;
+    char *line;
     size_t len;
     input = bufferevent_get_input(this->bev);
 
     // Rb
-    unsigned char serverNonce[NONCE_SIZE] = {};
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    writeLine(this->plainTextLog, "RECEIVED NONCE FROM SERVER:");
+    writeHex(this->plainTextLog, line, strlen(line));
+    free(line);
+
+    // Encrypted message
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+
+    writeLine(this->plainTextLog, "Encrypted received MESSAGE:");
+    writeHex(this->plainTextLog, line, strlen(line));
+
+    char decryptedMessage[1024];
+    decrypt(line, decryptedMessage);
+
+    writeLine(this->plainTextLog, "DECRYPTED MESSAGE:");
+    writeHex(this->plainTextLog, decryptedMessage, strlen(decryptedMessage));
+
+    char *sender = strtok(decryptedMessage, "\n");
+    char *returnedNonce = strtok(NULL, "\n");
+    char *diffieHellmanValue = strtok(NULL, "\n");
+
+    char output[1024];
+    sprintf(output, "Sender: %s\n\nDH Val: %s\n", sender, diffieHellmanValue);
+
+    writeLine(this->plainTextLog, output);
+
+    if(strcmp(sender, "Server") == 0)
+    {
+        writeLine(this->plainTextLog, "Message came from the server");
+
+        if(are_nonces_equal(this->nonce, returnedNonce))
+        {
+            writeLine(this->plainTextLog, "Server returned correct Nonce");
+        }
+    }
+
+
+
+
+    // Rb
+    /*char serverNonce[NONCE_SIZE] = {};
     bufferevent_read(this->bev, serverNonce, NONCE_SIZE);
     writeLine(this->plainTextLog, "NONCE RECEIVED:");
     writeHex(this->plainTextLog, serverNonce, NONCE_SIZE);
 
-    unsigned char encryptedServerNonce[100] = {};
+    char encryptedServerNonce[100] = {};
     encrypt(serverNonce, encryptedServerNonce);
 
     // Encrypted Ra
-    char * line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
     writeLine(this->plainTextLog, "Encrypted NONCE received");
-    writeHex(this->plainTextLog, (unsigned char *)line, strlen(line));
-    unsigned char nonce[NONCE_SIZE];
-    decrypt((unsigned char *)line, nonce);
+    writeHex(this->plainTextLog, line, strlen(line));
+    char nonce[NONCE_SIZE];
+    decrypt(line, nonce);
     writeHex(this->plainTextLog, nonce, NONCE_SIZE);
 
     if(are_nonces_equal(this->nonce, nonce))
     {
         writeLine(this->plainTextLog, "Nonce is correct");
 
-        
+
 
         this->authState = AUTH_STATE_TEST;
 
@@ -119,7 +160,7 @@ void clientReadStateNoAuthentication(Client *this)
 
     free(line);
 
-    /*unsigned char test[2048];
+    unsigned char test[2048];
     private_decrypt(Rb, len, this->privateKey, test);
     printf("DE: %s\n", test);*/
 

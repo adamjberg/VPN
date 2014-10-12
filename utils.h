@@ -3,8 +3,8 @@
 
 #include <gtk/gtk.h>
 
-void printHex(unsigned char *bytes, int len);
-void writeHex(GtkWidget *textView, unsigned char *text, int length);
+void printHex(char *bytes, int len);
+void writeHex(GtkWidget *textView, char *text, int length);
 void writeLine(GtkWidget *textView, const char * text);
 
 #endif

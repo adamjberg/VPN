@@ -26,7 +26,7 @@ typedef struct Client
     int authState;
     Key *privateKey;
     Key *publicKey;
-    unsigned char *nonce;
+    char *nonce;
 } Client;
 
 struct Client* client_init_new(

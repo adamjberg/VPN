@@ -5,42 +5,42 @@
 #include <openssl/blowfish.h>
 #include <string.h>
 #include <gtk/gtk.h>
+#include <linux/random.h>
 
 #define SIZE 16
 
 int padding = RSA_PKCS1_PADDING;
 const char *secretKey = "AAAAAAAAAAAAAAAA"; // 128 bits
 
-void encrypt(unsigned char *in, unsigned char *out)
+void encrypt(char *in, char *out)
 {
     unsigned char ivec[8] = {};
     BF_KEY *key = malloc(sizeof(BF_KEY));
 
     BF_set_key(key, strlen(secretKey), (const unsigned char*)secretKey );
 
-    BF_cbc_encrypt(in, out, strlen((char *)in), key, ivec, BF_ENCRYPT);
-    printf("%s\n", out);
+    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), key, ivec, BF_ENCRYPT);
 }
 
-void decrypt(unsigned char *in, unsigned char *out)
+void decrypt(char *in, char *out)
 {
     unsigned char ivec[8] = {};
     BF_KEY *key = malloc(sizeof(BF_KEY));
 
     BF_set_key(key, strlen(secretKey), (const unsigned char*)secretKey );
 
-    BF_cbc_encrypt(in, out, strlen((char *)in), key, ivec, BF_DECRYPT);
-    printf("%s\n", out);
+    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), key, ivec, BF_DECRYPT);
 }
 
-unsigned char * get_nonce()
+char * get_nonce()
 {
-    unsigned char *nonce = malloc(NONCE_SIZE);
-    RAND_bytes(nonce, NONCE_SIZE);
+    char *nonce = malloc(NONCE_SIZE);
+    RAND_bytes((unsigned char *)nonce, NONCE_SIZE - 1);
+    nonce[NONCE_SIZE - 1] = 0;
     return nonce;
 }
 
-gboolean are_nonces_equal(unsigned char *nonce1, unsigned char *nonce2)
+gboolean are_nonces_equal(char *nonce1, char *nonce2)
 {
     int i;
     for(i = 0; i < NONCE_SIZE; i++)
@@ -129,10 +129,8 @@ bool generate_key(Key *publicKey, Key *privateKey)
     }
 
     publicKey->length = i2d_RSAPublicKey(r, &publicKey->data);
-    printf("publickeylength: %d\n", publicKey->length);
     publicKey->rsa = r;
     privateKey->length = i2d_RSAPrivateKey(r, &privateKey->data);
-    printf("private length: %d\n", privateKey->length);
     privateKey->rsa = r;
 
     // 4. free

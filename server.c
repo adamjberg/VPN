@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <math.h>
 
 #include "crypto.h"
 #include "utils.h"
@@ -100,17 +101,36 @@ void serverReadStateNoAuthentication(Server *this)
     server_send_data(this, this->nonce, NONCE_SIZE);
 
     // Ra nonce
-    unsigned char nonce[NONCE_SIZE] = {};
-    bufferevent_read(this->bev, nonce, NONCE_SIZE);
+    char clientNonce[NONCE_SIZE] = {};
+    bufferevent_read(this->bev, clientNonce, NONCE_SIZE);
     writeLine(this->plainTextLog, "NONCE RECEIVED:");
-    writeHex(this->plainTextLog, nonce, NONCE_SIZE);
+    writeHex(this->plainTextLog, clientNonce, NONCE_SIZE);
 
-    unsigned char out[100] = {};
-    encrypt(nonce, out);
+    int diffieHellmanVal = (int) pow(DHG, B) % DHP;
+    writeLine(this->plainTextLog, "g^b mod p:");
 
-    writeLine(this->plainTextLog, "ENCRYPTED NONCE:");
-    writeHex(this->plainTextLog, out, strlen((char *)out));
-    server_send(this, (char *)out);
+    char messageToEncrypt[1024];
+
+    sprintf(messageToEncrypt, "Server\n%s\n%d\n", clientNonce, diffieHellmanVal);
+
+    writeLine(this->plainTextLog, "Message to Encrypt:");
+    writeHex(this->plainTextLog, messageToEncrypt, strlen(messageToEncrypt));
+
+    char encryptedMessage[1024];
+    encrypt(messageToEncrypt, encryptedMessage);
+
+    writeLine(this->plainTextLog, "Encrypted Message:");
+    writeHex(this->plainTextLog, encryptedMessage, strlen(encryptedMessage));
+
+    char fullMessage[1024];
+    sprintf(fullMessage, "%s\n%s\n", this->nonce, encryptedMessage);
+
+    writeLine(this->plainTextLog, "Final Message to Send:");
+    writeHex(this->plainTextLog, fullMessage, strlen(fullMessage));
+
+    printf("full message: %s", fullMessage);
+
+    server_send(this, fullMessage);
 
     this->authState = AUTH_STATE_TEST;
 }
