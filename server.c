@@ -34,6 +34,18 @@ void server_send(Server *this, const char *msg)
     }   
 }
 
+void server_send_data(Server *this, const void *data, size_t size)
+{
+    if(this != NULL && this->bev != NULL)
+    {
+        struct evbuffer *output = bufferevent_get_output(this->bev);
+        if(output != NULL)
+        {
+            evbuffer_add(output, data, size);
+        }
+    }
+}
+
 void
 server_readcb(struct bufferevent *bev, void *ctx)
 {
@@ -81,23 +93,26 @@ void serverReadStateTestAuthentication(Server *this)
 // The client should be sending us their public key Ra
 void serverReadStateNoAuthentication(Server *this)
 {
-    struct evbuffer *input;
-    char *line;
-    size_t len;
-    input = bufferevent_get_input(this->bev);
+    // Rb nonce
+    this->nonce = get_nonce();
+    writeLine(this->plainTextLog,"Sending NONCE:");
+    writeHex(this->plainTextLog, this->nonce, NONCE_SIZE);
+    server_send_data(this, this->nonce, NONCE_SIZE);
 
-    // Ra
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-    unsigned char *clientPublicKey = malloc(len);
-    memcpy(clientPublicKey, line, len);
-    unsigned char *message = NULL;
-    public_encrypt(clientPublicKey, len, clientPublicKey, message);
+    // Ra nonce
+    unsigned char nonce[NONCE_SIZE] = {};
+    bufferevent_read(this->bev, nonce, NONCE_SIZE);
+    writeLine(this->plainTextLog, "NONCE RECEIVED:");
+    writeHex(this->plainTextLog, nonce, NONCE_SIZE);
 
-    server_send(this, (char *) message);
+    unsigned char out[100] = {};
+    encrypt(nonce, out);
 
-    while ((line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF))) {
-        free(line);
-    }
+    writeLine(this->plainTextLog, "ENCRYPTED NONCE:");
+    writeHex(this->plainTextLog, out, strlen((char *)out));
+    server_send(this, (char *)out);
+
+    this->authState = AUTH_STATE_TEST;
 }
 
 void server_errorcb(struct bufferevent *bev, short error, void *ctx)
@@ -174,6 +189,8 @@ struct Server* server_init_new(
     this->authState = AUTH_STATE_NONE;
     this->bev = NULL;
 
+    this->publicKey = key_init_new();
+    this->privateKey = key_init_new();
     generate_key(this->publicKey, this->privateKey);
 
     this->eventBase = event_base_new();

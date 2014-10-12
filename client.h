@@ -8,6 +8,8 @@
 
 #include <event2/event.h>
 
+#include "crypto.h"
+
 #define AUTH_STATE_NONE 0
 #define AUTH_STATE_TEST 1
 #define AUTH_STATE_AUTHENTICATED 2
@@ -22,8 +24,9 @@ typedef struct Client
     GtkWidget *cipherTextLog;
     GtkWidget *sharedKey;
     int authState;
-    unsigned char *privateKey;
-    unsigned char *publicKey;
+    Key *privateKey;
+    Key *publicKey;
+    unsigned char *nonce;
 } Client;
 
 struct Client* client_init_new(
@@ -35,6 +38,7 @@ struct Client* client_init_new(
     GtkWidget *sharedKey
 );
 void client_send(struct Client *client, const char *msg);
+void client_send_data(Client *this, const void *data, size_t size);
 void client_free(struct Client *client);
 void clientReadStateAuthenticated(struct Client *client);
 void clientReadStateNoAuthentication(struct Client *client);

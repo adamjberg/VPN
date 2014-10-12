@@ -83,17 +83,47 @@ void clientReadStateTestAuthentication(Client *this)
 void clientReadStateNoAuthentication(Client *this)
 {
     struct evbuffer *input;
-    char *line;
     size_t len;
     input = bufferevent_get_input(this->bev);
 
     // Rb
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-    unsigned char *Rb = malloc(len);
-    memcpy(Rb, line, len);
+    unsigned char serverNonce[NONCE_SIZE] = {};
+    bufferevent_read(this->bev, serverNonce, NONCE_SIZE);
+    writeLine(this->plainTextLog, "NONCE RECEIVED:");
+    writeHex(this->plainTextLog, serverNonce, NONCE_SIZE);
 
-    printf("RB: %s", Rb);
+    unsigned char encryptedServerNonce[100] = {};
+    encrypt(serverNonce, encryptedServerNonce);
 
+    // Encrypted Ra
+    char * line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    writeLine(this->plainTextLog, "Encrypted NONCE received");
+    writeHex(this->plainTextLog, (unsigned char *)line, strlen(line));
+    unsigned char nonce[NONCE_SIZE];
+    decrypt((unsigned char *)line, nonce);
+    writeHex(this->plainTextLog, nonce, NONCE_SIZE);
+
+    if(are_nonces_equal(this->nonce, nonce))
+    {
+        writeLine(this->plainTextLog, "Nonce is correct");
+
+        
+
+        this->authState = AUTH_STATE_TEST;
+
+    }
+    else
+    {
+        writeLine(this->plainTextLog, "Incorrect Nonce returned");
+    }
+
+    free(line);
+
+    /*unsigned char test[2048];
+    private_decrypt(Rb, len, this->privateKey, test);
+    printf("DE: %s\n", test);*/
+
+    /*
     // E(Ra)
     line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
 
@@ -102,12 +132,7 @@ void clientReadStateNoAuthentication(Client *this)
 
     // E(KAB)
     line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-
-
-
-    while ((line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF))) {
-        free(line);
-    }
+    */
 }
 
 void client_eventcb(struct bufferevent *bev, short events, void *ptr)
@@ -118,7 +143,11 @@ void client_eventcb(struct bufferevent *bev, short events, void *ptr)
         gtk_button_set_label(GTK_BUTTON(this->statusButton), "Connected");
         evutil_socket_t fd = bufferevent_getfd(bev);
         set_tcp_no_delay(fd);
-        client_send(this, (char *) this->publicKey);
+
+        this->nonce = get_nonce();
+        writeLine(this->plainTextLog,"Sending NONCE:");
+        writeHex(this->plainTextLog, this->nonce, NONCE_SIZE);
+        client_send_data(this, this->nonce, NONCE_SIZE);
     }
     else if (events & BEV_EVENT_ERROR)
     {
@@ -139,6 +168,18 @@ void client_send(Client* this, const char *msg)
     }
 }
 
+void client_send_data(Client *this, const void *data, size_t size)
+{
+    if(this != NULL && this->bev != NULL)
+    {
+        struct evbuffer *output = bufferevent_get_output(this->bev);
+        if(output != NULL)
+        {
+            evbuffer_add(output, data, size);
+        }
+    }
+}
+
 Client* client_init_new(
     GtkWidget *statusButton,
     GtkWidget *plainTextLog,
@@ -155,6 +196,8 @@ Client* client_init_new(
     this->statusButton = statusButton;
     this->sharedKey = sharedKey;
 
+    this->publicKey = key_init_new();
+    this->privateKey = key_init_new();
     generate_key(this->publicKey, this->privateKey);
 
     const char *portNumberString = gtk_entry_get_text(GTK_ENTRY(portNumber));
