@@ -123,57 +123,6 @@ void clientReadStateNoAuthentication(Client *this)
             writeLine(this->plainTextLog, "Server returned correct Nonce");
         }
     }
-
-
-
-
-    // Rb
-    /*char serverNonce[NONCE_SIZE] = {};
-    bufferevent_read(this->bev, serverNonce, NONCE_SIZE);
-    writeLine(this->plainTextLog, "NONCE RECEIVED:");
-    writeHex(this->plainTextLog, serverNonce, NONCE_SIZE);
-
-    char encryptedServerNonce[100] = {};
-    encrypt(serverNonce, encryptedServerNonce);
-
-    // Encrypted Ra
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-    writeLine(this->plainTextLog, "Encrypted NONCE received");
-    writeHex(this->plainTextLog, line, strlen(line));
-    char nonce[NONCE_SIZE];
-    decrypt(line, nonce);
-    writeHex(this->plainTextLog, nonce, NONCE_SIZE);
-
-    if(are_nonces_equal(this->nonce, nonce))
-    {
-        writeLine(this->plainTextLog, "Nonce is correct");
-
-
-
-        this->authState = AUTH_STATE_TEST;
-
-    }
-    else
-    {
-        writeLine(this->plainTextLog, "Incorrect Nonce returned");
-    }
-
-    free(line);
-
-    unsigned char test[2048];
-    private_decrypt(Rb, len, this->privateKey, test);
-    printf("DE: %s\n", test);*/
-
-    /*
-    // E(Ra)
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-
-    // E(g^b mod p)
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-
-    // E(KAB)
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-    */
 }
 
 void client_eventcb(struct bufferevent *bev, short events, void *ptr)
