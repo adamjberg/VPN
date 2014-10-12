@@ -14,6 +14,8 @@
 #define AUTH_STATE_TEST 1
 #define AUTH_STATE_AUTHENTICATED 2
 
+#define SECRET_A 5
+
 typedef struct Client
 {
     struct event_base *base;

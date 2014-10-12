@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <gtk/gtk.h>
 
@@ -88,10 +89,9 @@ void clientReadStateNoAuthentication(Client *this)
     input = bufferevent_get_input(this->bev);
 
     // Rb
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    char *serverNonce = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
     writeLine(this->plainTextLog, "RECEIVED NONCE FROM SERVER:");
-    writeHex(this->plainTextLog, line, strlen(line));
-    free(line);
+    writeHex(this->plainTextLog, serverNonce, strlen(serverNonce));
 
     // Encrypted message
     line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
@@ -107,10 +107,10 @@ void clientReadStateNoAuthentication(Client *this)
 
     char *sender = strtok(decryptedMessage, "\n");
     char *returnedNonce = strtok(NULL, "\n");
-    char *diffieHellmanValue = strtok(NULL, "\n");
+    char *serverDiffieHellmanValue = strtok(NULL, "\n");
 
     char output[1024];
-    sprintf(output, "Sender: %s\n\nDH Val: %s\n", sender, diffieHellmanValue);
+    sprintf(output, "Sender: %s\n\nDH Val: %s\n", sender, serverDiffieHellmanValue);
 
     writeLine(this->plainTextLog, output);
 
@@ -121,6 +121,33 @@ void clientReadStateNoAuthentication(Client *this)
         if(are_nonces_equal(this->nonce, returnedNonce))
         {
             writeLine(this->plainTextLog, "Server returned correct Nonce");
+
+            int dhVal = atoi(serverDiffieHellmanValue);
+
+            // This will be the key used for communication in the future
+            int sessionKey = (int) pow(dhVal, SECRET_A);
+            sprintf(output, "Session key: %d", sessionKey);
+            writeLine(this->plainTextLog, output);
+
+            int clientDiffieHellmanVal = (int) pow(DHG, SECRET_A) % DHP;
+            writeLine(this->plainTextLog, "g^b mod p:");
+
+            char messageToEncrypt[1024];
+
+            sprintf(messageToEncrypt, "Client\n%s\n%d\n", serverNonce, clientDiffieHellmanVal);
+
+            writeLine(this->plainTextLog, "Message to Encrypt:");
+            writeHex(this->plainTextLog, messageToEncrypt, strlen(messageToEncrypt));
+
+            char encryptedMessage[1024];
+            encrypt(messageToEncrypt, encryptedMessage);
+
+            writeLine(this->plainTextLog, "Encrypted Message:");
+            writeHex(this->plainTextLog, encryptedMessage, strlen(encryptedMessage));
+
+            client_send(this, encryptedMessage);
+
+            this->authState = AUTH_STATE_AUTHENTICATED;
         }
     }
 }

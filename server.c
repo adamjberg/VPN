@@ -84,10 +84,47 @@ void serverReadStateTestAuthentication(Server *this)
 {
     struct evbuffer *input;
     char *line;
-    size_t n;
+    size_t len;
     input = bufferevent_get_input(this->bev);
-    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
-        free(line);
+
+    // Encrypted message
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+
+    writeLine(this->plainTextLog, "Encrypted received MESSAGE:");
+    writeHex(this->plainTextLog, line, strlen(line));
+
+    char decryptedMessage[1024];
+    decrypt(line, decryptedMessage);
+
+    writeLine(this->plainTextLog, "DECRYPTED MESSAGE:");
+    writeHex(this->plainTextLog, decryptedMessage, strlen(decryptedMessage));
+
+    char *sender = strtok(decryptedMessage, "\n");
+    char *returnedNonce = strtok(NULL, "\n");
+    char *clientDiffieHellmanValue = strtok(NULL, "\n");
+
+    char output[1024];
+    sprintf(output, "Sender: %s\n\nDH Val: %s\n", sender, clientDiffieHellmanValue);
+
+    writeLine(this->plainTextLog, output);
+
+    if(strcmp(sender, "Client") == 0)
+    {
+        writeLine(this->plainTextLog, "Message came from the client");
+
+        if(are_nonces_equal(this->nonce, returnedNonce))
+        {
+            writeLine(this->plainTextLog, "Client returned correct Nonce");
+            int dhVal = atoi(clientDiffieHellmanValue);
+
+            // This will be the key used for communication in the future
+            int sessionKey = (int) pow(dhVal, B);
+
+            sprintf(output, "Session key: %d", sessionKey);
+            writeLine(this->plainTextLog, output);
+
+            this->authState = AUTH_STATE_AUTHENTICATED;
+        }
     }
 }
 
