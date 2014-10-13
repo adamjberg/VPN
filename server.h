@@ -27,8 +27,8 @@ typedef struct Server
     GtkWidget *cipherTextLog;
     GtkWidget *sharedKey;
     int authState;
-    Key *privateKey;
-    Key *publicKey;
+    Key *sessionKey;
+    Key *sharedPrivateKey;
     RSA *rsa;
     char *nonce;
 } Server;

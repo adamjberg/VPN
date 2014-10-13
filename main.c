@@ -173,6 +173,7 @@ void initGUI(int argc, char *argv[])
     portNumberLabel = gtk_label_new("Port:");
 
     sharedKey = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(sharedKey), "SHAREDKEY");
     sharedKeyLabel = gtk_label_new("Shared key:");
 
     messageSendButton = gtk_button_new_with_label("Send");

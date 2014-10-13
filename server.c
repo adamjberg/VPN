@@ -94,7 +94,7 @@ void serverReadStateTestAuthentication(Server *this)
     writeHex(this->plainTextLog, line, strlen(line));
 
     char decryptedMessage[1024];
-    decrypt(line, decryptedMessage);
+    decrypt(line, decryptedMessage, this->sharedPrivateKey);
 
     writeLine(this->plainTextLog, "DECRYPTED MESSAGE:");
     writeHex(this->plainTextLog, decryptedMessage, strlen(decryptedMessage));
@@ -152,7 +152,7 @@ void serverReadStateNoAuthentication(Server *this)
         writeHex(this->plainTextLog, clientNonce, NONCE_SIZE);
     }
     
-    int diffieHellmanVal = (int) pow(DHG, B) % DHP;
+    int diffieHellmanVal = (int) pow(DIFFIE_HELLMAN_G, B) % DIFFIE_HELLMAN_P;
     char output[30];
     sprintf(output, "g^b mod p: %d", diffieHellmanVal);
     writeLine(this->plainTextLog, output);
@@ -164,7 +164,7 @@ void serverReadStateNoAuthentication(Server *this)
     writeHex(this->plainTextLog, messageToEncrypt, strlen(messageToEncrypt));
 
     char encryptedMessage[30] = {};
-    encrypt(messageToEncrypt, encryptedMessage);
+    encrypt(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
 
     if(encryptedMessage == NULL)
     {
@@ -262,9 +262,11 @@ struct Server* server_init_new(
     this->authState = AUTH_STATE_NONE;
     this->bev = NULL;
 
-    this->publicKey = key_init_new();
-    this->privateKey = key_init_new();
-    generate_key(this->publicKey, this->privateKey);
+    this->sharedPrivateKey = key_init_new();
+    const char *keyText = gtk_entry_get_text(GTK_ENTRY(this->sharedKey));
+    this->sharedPrivateKey->length = strlen(keyText);
+    this->sharedPrivateKey->data = malloc(this->sharedPrivateKey->length);
+    strcpy(this->sharedPrivateKey->data, keyText);
 
     this->eventBase = event_base_new();
     if (!this->eventBase)

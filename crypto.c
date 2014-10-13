@@ -10,26 +10,25 @@
 #define SIZE 16
 
 int padding = RSA_PKCS1_PADDING;
-const char *secretKey = "AAAAAAAAAAAAAAAA"; // 128 bits
 
-void encrypt(char *in, char *out)
+void encrypt(char *in, char *out, Key *key)
 {
     unsigned char ivec[8] = {};
-    BF_KEY *key = malloc(sizeof(BF_KEY));
+    BF_KEY *bf_key = malloc(sizeof(BF_KEY));
 
-    BF_set_key(key, strlen(secretKey), (const unsigned char*)secretKey );
+    BF_set_key(bf_key, key->length, (const unsigned char*)key->data );
 
-    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), key, ivec, BF_ENCRYPT);
+    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), bf_key, ivec, BF_ENCRYPT);
 }
 
-void decrypt(char *in, char *out)
+void decrypt(char *in, char *out, Key *key)
 {
     unsigned char ivec[8] = {};
-    BF_KEY *key = malloc(sizeof(BF_KEY));
+    BF_KEY *bf_key = malloc(sizeof(BF_KEY));
 
-    BF_set_key(key, strlen(secretKey), (const unsigned char*)secretKey );
+    BF_set_key(bf_key, key->length, (const unsigned char*)key->data );
 
-    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), key, ivec, BF_DECRYPT);
+    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), bf_key, ivec, BF_DECRYPT);
 }
 
 char * get_nonce()
@@ -76,100 +75,4 @@ void key_free(Key *this)
 {
     free(this->data);
     free(this);
-}
-
-RSA * createRSA(Key * key, int public)
-{
-    if(key->rsa != NULL)
-    {
-        return key->rsa;
-    }
-
-    if(public)
-    {
-        key->rsa = d2i_RSAPublicKey(NULL, (const unsigned char **)&key->data, key->length);
-    }
-    else
-    {
-        key->rsa = d2i_RSAPrivateKey(NULL, (const unsigned char **)&key->data, key->length);
-    }
-
-    if(key->rsa == NULL)
-    {
-        printf("ENEORNEONER\n");
-    }
-    else
-    {
-        int size = RSA_size(key->rsa);
-        printf("RSA SIZE: %d\n", size);
-    }
-
-    return key->rsa;
-}
-
-bool generate_key(Key *publicKey, Key *privateKey)
-{
-    int             ret = 0;
-    RSA             *r = NULL;
-    BIGNUM          *bne = NULL;
- 
-    unsigned long   e = RSA_F4;
- 
-    // 1. generate rsa key
-    bne = BN_new();
-    ret = BN_set_word(bne,e);
-    if(ret != 1){
-        goto free_all;
-    }
- 
-    r = RSA_new();
-    ret = RSA_generate_key_ex(r, KEY_BITS, bne, NULL);
-    if(ret != 1){
-        goto free_all;
-    }
-
-    publicKey->length = i2d_RSAPublicKey(r, &publicKey->data);
-    publicKey->rsa = r;
-    privateKey->length = i2d_RSAPrivateKey(r, &privateKey->data);
-    privateKey->rsa = r;
-
-    // 4. free
-free_all:
-    BN_free(bne);
- 
-    return (ret == 1);
-}
-
-int public_encrypt(unsigned char * data,int data_len,Key *key, unsigned char *encrypted)
-{
-    RSA * rsa = createRSA(key,1);
-    if(rsa == NULL)
-    {
-        printf("MOTHER FUCKER\n");
-        return 0;
-    }
-
-    int result = RSA_public_encrypt(data_len,data,encrypted,rsa,padding);
-    return result;
-}
-
-int public_decrypt(unsigned char * enc_data,int data_len,Key *key, unsigned char *decrypted)
-{
-    RSA * rsa = createRSA(key,1);
-    int  result = RSA_public_decrypt(data_len,enc_data,decrypted,rsa,padding);
-    return result;
-}
-
-int private_encrypt(unsigned char * data,int data_len,Key *key, unsigned char *encrypted)
-{
-    RSA * rsa = createRSA(key,0);
-    int result = RSA_private_encrypt(data_len,data,encrypted,rsa,padding);
-    return result;
-
-}
-int private_decrypt(unsigned char * enc_data,int data_len,Key *key, unsigned char *decrypted)
-{
-    RSA * rsa = createRSA(key,0);
-    int  result = RSA_private_decrypt(data_len,enc_data,decrypted,rsa,padding);
-    return result;
 }

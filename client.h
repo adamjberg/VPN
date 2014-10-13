@@ -26,6 +26,8 @@ typedef struct Client
     GtkWidget *cipherTextLog;
     GtkWidget *sharedKey;
     int authState;
+    Key *sessionKey;
+    Key *sharedPrivateKey;
     Key *privateKey;
     Key *publicKey;
     char *nonce;

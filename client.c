@@ -112,7 +112,7 @@ void clientReadStateNoAuthentication(Client *this)
     writeHex(this->plainTextLog, line, strlen(line));
 
     char decryptedMessage[30];
-    decrypt(line, decryptedMessage);
+    decrypt(line, decryptedMessage,this->sharedPrivateKey);
     free(line);
     if(decryptedMessage == NULL)
     {
@@ -147,16 +147,11 @@ void clientReadStateNoAuthentication(Client *this)
             sprintf(output, "Session key: %d", sessionKey);
             writeLine(this->plainTextLog, output);
 
-            int clientDiffieHellmanVal = (int) pow(DHG, SECRET_A) % DHP;
+            int clientDiffieHellmanVal = (int) pow(DIFFIE_HELLMAN_G, SECRET_A) % DIFFIE_HELLMAN_P;
             sprintf(output, "g^a mod p:: %d", clientDiffieHellmanVal);
             writeLine(this->plainTextLog, output);
 
             char messageToEncrypt[30] = {};
-
-            if(messageToEncrypt == NULL)
-            {
-                writeLine(this->plainTextLog, "I should see this message");
-            }
 
             sprintf(messageToEncrypt, "Client\n%s\n%d\n", serverNonce, clientDiffieHellmanVal);
 
@@ -164,7 +159,7 @@ void clientReadStateNoAuthentication(Client *this)
             writeHex(this->plainTextLog, messageToEncrypt, strlen(messageToEncrypt));
 
             char encryptedMessage[30] = {};
-            encrypt(messageToEncrypt, encryptedMessage);
+            encrypt(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
 
             if(encryptedMessage == NULL)
             {
@@ -245,10 +240,14 @@ Client* client_init_new(
     this->statusButton = statusButton;
     this->sharedKey = sharedKey;
 
-    this->publicKey = key_init_new();
-    this->privateKey = key_init_new();
-    generate_key(this->publicKey, this->privateKey);
+    this->sessionKey = NULL;
 
+    this->sharedPrivateKey = key_init_new();
+    const char *keyText = gtk_entry_get_text(GTK_ENTRY(this->sharedKey));
+    this->sharedPrivateKey->length = strlen(keyText);
+    this->sharedPrivateKey->data = malloc(this->sharedPrivateKey->length);
+    strcpy(this->sharedPrivateKey->data, keyText);
+    
     const char *portNumberString = gtk_entry_get_text(GTK_ENTRY(portNumber));
     int port = atoi(portNumberString);
 
