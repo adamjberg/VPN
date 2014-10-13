@@ -2,7 +2,6 @@
 #define CRYPTO_H_
 
 #include <stdbool.h>
-#include <openssl/rsa.h>
 #include <gtk/gtk.h>
 
 #define KEY_BITS 1024
@@ -21,6 +20,7 @@ typedef struct Key
     int length;
 } Key;
 
+char * get_md5_hash(char *textToHash, long len);
 void encrypt(char *in, char *out, struct Key *key);
 void decrypt(char *in, char *out, struct Key *key);
 gboolean are_nonces_equal(char *nonce1, char *nonce2);

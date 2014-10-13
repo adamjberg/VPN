@@ -1,34 +1,38 @@
 #include "crypto.h"
-#include <openssl/pem.h>
-#include <openssl/rsa.h>
+#include <openssl/md5.h>
 #include <openssl/rand.h>
 #include <openssl/blowfish.h>
 #include <string.h>
 #include <gtk/gtk.h>
-#include <linux/random.h>
 
-#define SIZE 16
+char *get_md5_hash(char *textToHash, long len)
+{
+    char *out = malloc(MD5_DIGEST_LENGTH);
+    MD5((unsigned char *)textToHash, len, (unsigned char *)out);
+    return out;
+}
 
-int padding = RSA_PKCS1_PADDING;
 
 void encrypt(char *in, char *out, Key *key)
 {
+    int num = 0;
     unsigned char ivec[8] = {};
     BF_KEY *bf_key = malloc(sizeof(BF_KEY));
 
     BF_set_key(bf_key, key->length, (const unsigned char*)key->data );
 
-    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), bf_key, ivec, BF_ENCRYPT);
+    BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_ENCRYPT);
 }
 
 void decrypt(char *in, char *out, Key *key)
 {
+    int num = 0;
     unsigned char ivec[8] = {};
     BF_KEY *bf_key = malloc(sizeof(BF_KEY));
 
     BF_set_key(bf_key, key->length, (const unsigned char*)key->data );
 
-    BF_cbc_encrypt((unsigned char *)in, (unsigned char *)out, strlen((char *)in), bf_key, ivec, BF_DECRYPT);
+    BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_DECRYPT);
 }
 
 char * get_nonce()

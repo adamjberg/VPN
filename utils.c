@@ -14,7 +14,7 @@ void printHex(char *bytes, int len)
 
 void writeHex(GtkWidget *textView, char *text, int length)
 {
-    char outText[length + 1];
+    char outText[length * 2 + 1];
     GtkTextIter iter;
     GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textView));
     gtk_text_buffer_get_end_iter(buffer, &iter);

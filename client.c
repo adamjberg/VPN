@@ -45,9 +45,6 @@ void client_readcb(struct bufferevent *bev, void *ctx)
         case AUTH_STATE_AUTHENTICATED:
             clientReadStateAuthenticated(this);
             break;
-        case AUTH_STATE_TEST:
-            clientReadStateTestAuthentication(this);
-            break;
         default:
             clientReadStateNoAuthentication(this);
             break;
@@ -62,19 +59,11 @@ void clientReadStateAuthenticated(Client *this)
     size_t n;
     input = bufferevent_get_input(this->bev);
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
-        writeLine(this->plainTextLog, line);
-        free(line);
-    }
-}
-
-// The server should be sending E("", Rb, g^a mod p, KAB)
-void clientReadStateTestAuthentication(Client *this)
-{
-    struct evbuffer *input;
-    char *line;
-    size_t n;
-    input = bufferevent_get_input(this->bev);
-    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+        char decryptedMessage[1024] = {};
+        decrypt(line, decryptedMessage, this->sessionKey);
+        writeLine(this->plainTextLog, "Encrypted text received:");
+        writeHex(this->plainTextLog, line, strlen(line));
+        writeLine(this->plainTextLog, decryptedMessage);
         free(line);
     }
 }
@@ -92,33 +81,18 @@ void clientReadStateNoAuthentication(Client *this)
     char *serverNonce;
     serverNonce = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
 
-    if(serverNonce == NULL || strlen(serverNonce) != NONCE_SIZE - 1)
-    {
-        writeLine(this->plainTextLog, "Failed to receive server nonce");
-        goto end;
-    }
     writeLine(this->plainTextLog, "RECEIVED NONCE FROM SERVER:");
     writeHex(this->plainTextLog, serverNonce, strlen(serverNonce));
 
     // Encrypted message
     line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
-    if(line == NULL)
-    {
-        writeLine(this->plainTextLog, "Failed to read line from buffer");
-        goto end;
-    }
 
     writeLine(this->plainTextLog, "Encrypted received MESSAGE:");
     writeHex(this->plainTextLog, line, strlen(line));
 
-    char decryptedMessage[30];
+    char decryptedMessage[30] = {};
     decrypt(line, decryptedMessage,this->sharedPrivateKey);
     free(line);
-    if(decryptedMessage == NULL)
-    {
-        writeLine(this->plainTextLog, "Failed to decrypt message");
-        goto end;
-    }
 
     writeLine(this->plainTextLog, "DECRYPTED MESSAGE:");
     writeHex(this->plainTextLog, decryptedMessage, strlen(decryptedMessage));
@@ -127,7 +101,7 @@ void clientReadStateNoAuthentication(Client *this)
     char *returnedNonce = strtok(NULL, "\n");
     char *serverDiffieHellmanValue = strtok(NULL, "\n");
 
-    char output[100];
+    char output[100] = {};
     sprintf(output, "Sender: %s\n\nDH Val: %s\n", sender, serverDiffieHellmanValue);
 
     writeLine(this->plainTextLog, output);
@@ -139,13 +113,6 @@ void clientReadStateNoAuthentication(Client *this)
         if(are_nonces_equal(this->nonce, returnedNonce))
         {
             writeLine(this->plainTextLog, "Server returned correct Nonce");
-
-            int dhVal = atoi(serverDiffieHellmanValue);
-
-            // This will be the key used for communication in the future
-            int sessionKey = (int) pow(dhVal, SECRET_A);
-            sprintf(output, "Session key: %d", sessionKey);
-            writeLine(this->plainTextLog, output);
 
             int clientDiffieHellmanVal = (int) pow(DIFFIE_HELLMAN_G, SECRET_A) % DIFFIE_HELLMAN_P;
             sprintf(output, "g^a mod p:: %d", clientDiffieHellmanVal);
@@ -161,22 +128,29 @@ void clientReadStateNoAuthentication(Client *this)
             char encryptedMessage[30] = {};
             encrypt(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
 
-            if(encryptedMessage == NULL)
-            {
-                writeLine(this->plainTextLog, "Failed to encrypt message:");
-            }
-
             writeLine(this->plainTextLog, "Encrypted Message:");
             writeHex(this->plainTextLog, encryptedMessage, strlen(encryptedMessage));
 
             client_send(this, encryptedMessage);
 
+
+            int dhVal = atoi(serverDiffieHellmanValue);
+
+            // This will be the key used for communication in the future
+            int sessionKeyInt = (int) pow(dhVal, SECRET_A);
+            char sessionKeyString[20] = {};
+            sprintf(sessionKeyString, "%d", sessionKeyInt);
+
+            this->sessionKey = key_init_new();
+            this->sessionKey->data = get_md5_hash(sessionKeyString, strlen(sessionKeyString));
+            this->sessionKey->length = strlen(this->sessionKey->data);
+
+            writeLine(this->plainTextLog, "Session key:");
+            writeHex(this->plainTextLog, this->sessionKey->data, this->sessionKey->length);
+
             this->authState = AUTH_STATE_AUTHENTICATED;
         }
     }
-
-end:
-    return;
 }
 
 void client_eventcb(struct bufferevent *bev, short events, void *ptr)
@@ -202,13 +176,20 @@ void client_eventcb(struct bufferevent *bev, short events, void *ptr)
 
 void client_send(Client* this, const char *msg)
 {
-    if(this != NULL && this->bev != NULL)
+    struct evbuffer *output = bufferevent_get_output(this->bev);
+    if(this->sessionKey != NULL)
     {
-        struct evbuffer *output = bufferevent_get_output(this->bev);
-        if(output != NULL)
-        {
-            evbuffer_add_printf(output, "%s\n", msg);
-        }
+        char encryptedMessage[1024] = {};
+        encrypt((char *)msg, encryptedMessage, this->sessionKey);
+        char line[1024] = {};
+        sprintf(line, "Sending message '%s' as encrypted text:", msg );
+        writeLine(this->plainTextLog, line);
+        writeHex(this->plainTextLog, encryptedMessage, strlen(encryptedMessage));
+        evbuffer_add_printf(output, "%s\n", encryptedMessage);
+    }
+    else
+    {
+        evbuffer_add_printf(output, "%s\n", msg);
     }
 }
 
@@ -247,7 +228,7 @@ Client* client_init_new(
     this->sharedPrivateKey->length = strlen(keyText);
     this->sharedPrivateKey->data = malloc(this->sharedPrivateKey->length);
     strcpy(this->sharedPrivateKey->data, keyText);
-    
+
     const char *portNumberString = gtk_entry_get_text(GTK_ENTRY(portNumber));
     int port = atoi(portNumberString);
 

@@ -41,6 +41,7 @@ struct Client* client_init_new(
     GtkWidget *clientName,
     GtkWidget *sharedKey
 );
+
 void client_send(struct Client *client, const char *msg);
 void client_send_data(Client *this, const void *data, size_t size);
 void client_free(struct Client *client);
