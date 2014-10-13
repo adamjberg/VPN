@@ -140,32 +140,48 @@ void serverReadStateNoAuthentication(Server *this)
     // Ra nonce
     char clientNonce[NONCE_SIZE] = {};
     bufferevent_read(this->bev, clientNonce, NONCE_SIZE);
-    writeLine(this->plainTextLog, "NONCE RECEIVED:");
-    writeHex(this->plainTextLog, clientNonce, NONCE_SIZE);
 
+    if(clientNonce == NULL)
+    {
+        writeLine(this->plainTextLog, "Failed to read client nonce");   
+        return;
+    }
+    else
+    {
+        writeLine(this->plainTextLog, "NONCE RECEIVED:");
+        writeHex(this->plainTextLog, clientNonce, NONCE_SIZE);
+    }
+    
     int diffieHellmanVal = (int) pow(DHG, B) % DHP;
-    writeLine(this->plainTextLog, "g^b mod p:");
+    char output[30];
+    sprintf(output, "g^b mod p: %d", diffieHellmanVal);
+    writeLine(this->plainTextLog, output);
 
-    char messageToEncrypt[1024];
-
+    char messageToEncrypt[30] = {};
     sprintf(messageToEncrypt, "Server\n%s\n%d\n", clientNonce, diffieHellmanVal);
 
     writeLine(this->plainTextLog, "Message to Encrypt:");
     writeHex(this->plainTextLog, messageToEncrypt, strlen(messageToEncrypt));
 
-    char encryptedMessage[1024];
+    char encryptedMessage[30] = {};
     encrypt(messageToEncrypt, encryptedMessage);
 
-    writeLine(this->plainTextLog, "Encrypted Message:");
-    writeHex(this->plainTextLog, encryptedMessage, strlen(encryptedMessage));
+    if(encryptedMessage == NULL)
+    {
+        writeLine(this->plainTextLog, "Failed to encrypt message");
+        return;
+    }
+    else
+    {
+        writeLine(this->plainTextLog, "Encrypted Message:");
+        writeHex(this->plainTextLog, encryptedMessage, strlen(encryptedMessage));
+    }
 
-    char fullMessage[1024];
+    char fullMessage[30] = {};
     sprintf(fullMessage, "%s\n%s\n", this->nonce, encryptedMessage);
 
     writeLine(this->plainTextLog, "Final Message to Send:");
     writeHex(this->plainTextLog, fullMessage, strlen(fullMessage));
-
-    printf("full message: %s", fullMessage);
 
     server_send(this, fullMessage);
 

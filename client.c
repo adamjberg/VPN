@@ -89,18 +89,36 @@ void clientReadStateNoAuthentication(Client *this)
     input = bufferevent_get_input(this->bev);
 
     // Rb
-    char *serverNonce = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    char *serverNonce;
+    serverNonce = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+
+    if(serverNonce == NULL || strlen(serverNonce) != NONCE_SIZE - 1)
+    {
+        writeLine(this->plainTextLog, "Failed to receive server nonce");
+        goto end;
+    }
     writeLine(this->plainTextLog, "RECEIVED NONCE FROM SERVER:");
     writeHex(this->plainTextLog, serverNonce, strlen(serverNonce));
 
     // Encrypted message
     line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    if(line == NULL)
+    {
+        writeLine(this->plainTextLog, "Failed to read line from buffer");
+        goto end;
+    }
 
     writeLine(this->plainTextLog, "Encrypted received MESSAGE:");
     writeHex(this->plainTextLog, line, strlen(line));
 
-    char decryptedMessage[1024];
+    char decryptedMessage[30];
     decrypt(line, decryptedMessage);
+    free(line);
+    if(decryptedMessage == NULL)
+    {
+        writeLine(this->plainTextLog, "Failed to decrypt message");
+        goto end;
+    }
 
     writeLine(this->plainTextLog, "DECRYPTED MESSAGE:");
     writeHex(this->plainTextLog, decryptedMessage, strlen(decryptedMessage));
@@ -109,7 +127,7 @@ void clientReadStateNoAuthentication(Client *this)
     char *returnedNonce = strtok(NULL, "\n");
     char *serverDiffieHellmanValue = strtok(NULL, "\n");
 
-    char output[1024];
+    char output[100];
     sprintf(output, "Sender: %s\n\nDH Val: %s\n", sender, serverDiffieHellmanValue);
 
     writeLine(this->plainTextLog, output);
@@ -130,17 +148,28 @@ void clientReadStateNoAuthentication(Client *this)
             writeLine(this->plainTextLog, output);
 
             int clientDiffieHellmanVal = (int) pow(DHG, SECRET_A) % DHP;
-            writeLine(this->plainTextLog, "g^b mod p:");
+            sprintf(output, "g^a mod p:: %d", clientDiffieHellmanVal);
+            writeLine(this->plainTextLog, output);
 
-            char messageToEncrypt[1024];
+            char messageToEncrypt[30] = {};
+
+            if(messageToEncrypt == NULL)
+            {
+                writeLine(this->plainTextLog, "I should see this message");
+            }
 
             sprintf(messageToEncrypt, "Client\n%s\n%d\n", serverNonce, clientDiffieHellmanVal);
 
             writeLine(this->plainTextLog, "Message to Encrypt:");
             writeHex(this->plainTextLog, messageToEncrypt, strlen(messageToEncrypt));
 
-            char encryptedMessage[1024];
+            char encryptedMessage[30] = {};
             encrypt(messageToEncrypt, encryptedMessage);
+
+            if(encryptedMessage == NULL)
+            {
+                writeLine(this->plainTextLog, "Failed to encrypt message:");
+            }
 
             writeLine(this->plainTextLog, "Encrypted Message:");
             writeHex(this->plainTextLog, encryptedMessage, strlen(encryptedMessage));
@@ -150,6 +179,9 @@ void clientReadStateNoAuthentication(Client *this)
             this->authState = AUTH_STATE_AUTHENTICATED;
         }
     }
+
+end:
+    return;
 }
 
 void client_eventcb(struct bufferevent *bev, short events, void *ptr)
