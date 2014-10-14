@@ -18,7 +18,8 @@ gboolean isServer = FALSE;
 
 GtkWidget *window;
 GtkWidget *vBox;
-GtkWidget *scrolledCipherWindow;
+GtkWidget *scrolledAuthenticationWindow;
+GtkWidget *scrolledEncryptedTextWindow;
 GtkWidget *scrolledPlaintextWindow;
 GtkWidget *serverDetailsHBox;
 GtkWidget *clientServerModeHBox;
@@ -28,9 +29,11 @@ GtkWidget *messageHBox;
 GtkWidget *messageLabel;
 GtkWidget *messageEntry;
 GtkWidget *messageSendButton;
-GtkWidget *cipherTextLog;
+GtkWidget *authenticationTextLog;
+GtkWidget *authenticationTextLogLabel;
+GtkWidget *encryptedTextLog;
 GtkWidget *plainTextLog;
-GtkWidget *cipherTextLogLabel;
+GtkWidget *encryptedTextLogLabel;
 GtkWidget *plainTextLogLabel;
 GtkWidget *serverName;
 GtkWidget *serverNameLabel;
@@ -52,7 +55,15 @@ typedef struct SendButtonData
 
 void initServer()
 {
-    server = server_init_new(serverStatusButton, plainTextLog, cipherTextLog, portNumber, serverName, sharedKey);
+    server = server_init_new(
+        serverStatusButton,
+        plainTextLog,
+        encryptedTextLog,
+        portNumber,
+        serverName,
+        sharedKey,
+        authenticationTextLog
+    );
 }
 
 void closeServer()
@@ -62,7 +73,15 @@ void closeServer()
 
 void initClient()
 {
-    client = client_init_new(clientStatusButton, plainTextLog, cipherTextLog, portNumber, serverName, sharedKey);
+    client = client_init_new(
+        clientStatusButton,
+        plainTextLog,
+        encryptedTextLog,
+        portNumber,
+        serverName,
+        sharedKey,
+        authenticationTextLog
+    );
 }
 
 void closeClient()
@@ -114,17 +133,7 @@ void onClientStatusChanged(GtkWidget *widget, gpointer data)
 
 void onSendButtonClicked(GtkWidget *widget, gpointer data)
 {
-    SendButtonData *sbData = data;
-    const char *text = gtk_entry_get_text(GTK_ENTRY(sbData->entry));
-    if (isServer)
-    {
-        writeLine(sbData->messageLog, "Server:");
-    }
-    else
-    {
-        writeLine(sbData->messageLog, "Client: ");
-    }
-    writeLine(sbData->messageLog, text);
+    const char *text = gtk_entry_get_text(GTK_ENTRY(messageEntry));
     if(client != NULL)
     {
         client_send(client, text);
@@ -178,19 +187,29 @@ void initGUI(int argc, char *argv[])
 
     messageSendButton = gtk_button_new_with_label("Send");
 
-    scrolledCipherWindow = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(scrolledCipherWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW(scrolledCipherWindow), 200);
+    scrolledAuthenticationWindow = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(scrolledAuthenticationWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW(scrolledAuthenticationWindow), 200);
+
+    scrolledEncryptedTextWindow = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(scrolledEncryptedTextWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW(scrolledEncryptedTextWindow), 200);
 
     scrolledPlaintextWindow = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(scrolledPlaintextWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW(scrolledPlaintextWindow), 200);
 
-    cipherTextLog = gtk_text_view_new();
-    gtk_text_view_set_editable(GTK_TEXT_VIEW(cipherTextLog), FALSE);
-    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(cipherTextLog), FALSE);
+    authenticationTextLog = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(authenticationTextLog), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(authenticationTextLog), FALSE);
 
-    cipherTextLogLabel = gtk_label_new("Cipher text:");
+    authenticationTextLogLabel = gtk_label_new("Authentication text:");
+
+    encryptedTextLog = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(encryptedTextLog), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(encryptedTextLog), FALSE);
+
+    encryptedTextLogLabel = gtk_label_new("Encrypted text:");
 
     plainTextLog = gtk_text_view_new();
     gtk_text_view_set_editable(GTK_TEXT_VIEW(plainTextLog), FALSE);
@@ -200,10 +219,7 @@ void initGUI(int argc, char *argv[])
 
     // SIGNALS
     g_signal_connect (modeComboBox, "changed", G_CALLBACK(onModeChanged), NULL);
-    SendButtonData *data = malloc(sizeof(*data));
-    data->entry = messageEntry;
-    data->messageLog = cipherTextLog;
-    g_signal_connect (messageSendButton, "clicked", G_CALLBACK(onSendButtonClicked), data);
+    g_signal_connect (messageSendButton, "clicked", G_CALLBACK(onSendButtonClicked), NULL);
     g_signal_connect(serverStatusButton, "toggled", G_CALLBACK(onServerStatusChanged), NULL);
     g_signal_connect(clientStatusButton, "toggled", G_CALLBACK(onClientStatusChanged), NULL);
 
@@ -221,7 +237,6 @@ void initGUI(int argc, char *argv[])
     gtk_box_pack_start (GTK_BOX(serverDetailsHBox), clientStatusButton, FALSE, FALSE, 1);
     gtk_box_pack_start (GTK_BOX(serverDetailsHBox), serverStatusButton, FALSE, FALSE, 1);
 
-
     gtk_box_pack_start (GTK_BOX(messageHBox), messageLabel, FALSE, FALSE, 1);
     gtk_box_pack_start (GTK_BOX(messageHBox), messageEntry, TRUE, TRUE, 1);
     gtk_box_pack_start (GTK_BOX(messageHBox), messageSendButton, FALSE, FALSE, 1);
@@ -230,9 +245,13 @@ void initGUI(int argc, char *argv[])
     gtk_container_add (GTK_CONTAINER(vBox), serverDetailsHBox);
     gtk_container_add (GTK_CONTAINER(vBox), messageHBox);
 
-    gtk_container_add (GTK_CONTAINER(vBox), cipherTextLogLabel);
-    gtk_container_add(GTK_CONTAINER(scrolledCipherWindow), cipherTextLog);
-    gtk_container_add (GTK_CONTAINER(vBox), scrolledCipherWindow);
+    gtk_container_add (GTK_CONTAINER(vBox), authenticationTextLogLabel);
+    gtk_container_add(GTK_CONTAINER(scrolledAuthenticationWindow), authenticationTextLog);
+    gtk_container_add (GTK_CONTAINER(vBox), scrolledAuthenticationWindow);
+
+    gtk_container_add (GTK_CONTAINER(vBox), encryptedTextLogLabel);
+    gtk_container_add(GTK_CONTAINER(scrolledEncryptedTextWindow), encryptedTextLog);
+    gtk_container_add (GTK_CONTAINER(vBox), scrolledEncryptedTextWindow);
 
     gtk_container_add (GTK_CONTAINER(vBox), plainTextLogLabel);
     gtk_container_add(GTK_CONTAINER(scrolledPlaintextWindow), plainTextLog);

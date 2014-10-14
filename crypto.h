@@ -20,13 +20,19 @@ typedef struct Key
     int length;
 } Key;
 
+typedef struct Nonce
+{
+    char bytes[NONCE_SIZE];
+    char hex[NONCE_SIZE * 2];
+} Nonce;
+
 char * get_md5_hash(char *textToHash, long len);
 void encrypt(char *in, char *out, struct Key *key);
 void decrypt(char *in, char *out, struct Key *key);
-gboolean are_nonces_equal(char *nonce1, char *nonce2);
+gboolean are_nonce_bytes_equal(char *nonce1, char *nonce2);
 void key_print(struct Key *this);
 Key *key_init_new();
 void key_free(struct Key *this);
-char * get_nonce();
+struct Nonce * get_nonce();
 
 #endif

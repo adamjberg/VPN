@@ -23,14 +23,14 @@ typedef struct Server
     struct event *listener_event;
     struct bufferevent *bev;
     GtkWidget *statusButton;
+    GtkWidget *authenticationTextLog;
     GtkWidget *plainTextLog;
     GtkWidget *cipherTextLog;
     GtkWidget *sharedKey;
     int authState;
     Key *sessionKey;
     Key *sharedPrivateKey;
-    RSA *rsa;
-    char *nonce;
+    Nonce *nonce;
 } Server;
 
 struct Server* server_init_new(
@@ -39,7 +39,8 @@ struct Server* server_init_new(
     GtkWidget *cipherTextLog,
     GtkWidget *portNumber,
     GtkWidget *serverName,
-    GtkWidget *sharedKey
+    GtkWidget *sharedKey,
+    GtkWidget* authenticationTextLog
 );
 void server_free(struct Server *server);
 void server_send(struct Server *server, const char *msg);

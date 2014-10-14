@@ -5,13 +5,14 @@
 #include <string.h>
 #include <gtk/gtk.h>
 
+#include "utils.h"
+
 char *get_md5_hash(char *textToHash, long len)
 {
     char *out = malloc(MD5_DIGEST_LENGTH);
     MD5((unsigned char *)textToHash, len, (unsigned char *)out);
     return out;
 }
-
 
 void encrypt(char *in, char *out, Key *key)
 {
@@ -35,15 +36,16 @@ void decrypt(char *in, char *out, Key *key)
     BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_DECRYPT);
 }
 
-char * get_nonce()
+Nonce * get_nonce()
 {
-    char *nonce = malloc(NONCE_SIZE);
-    RAND_bytes((unsigned char *)nonce, NONCE_SIZE - 1);
-    nonce[NONCE_SIZE - 1] = 0;
+    Nonce *nonce = malloc(sizeof(Nonce));
+    RAND_bytes((unsigned char *)&nonce->bytes, NONCE_SIZE - 1);
+    nonce->bytes[NONCE_SIZE - 1] = 0;
+    getHex(nonce->bytes, nonce->hex, NONCE_SIZE);
     return nonce;
 }
 
-gboolean are_nonces_equal(char *nonce1, char *nonce2)
+gboolean are_nonce_bytes_equal(char *nonce1, char *nonce2)
 {
     int i;
     for(i = 0; i < NONCE_SIZE; i++)
@@ -54,17 +56,6 @@ gboolean are_nonces_equal(char *nonce1, char *nonce2)
         }
     }
     return TRUE;
-}
-
-void key_print(Key *this)
-{
-    int i;
-    printf("KEY LENGTH : %d\n", this->length);
-    for(i = 0; i < this->length; i++)
-    {
-        printf("%02x", this->data[i]);
-    }
-    printf("\nENDKEY\n");
 }
 
 Key *key_init_new()

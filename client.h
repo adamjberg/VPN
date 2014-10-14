@@ -22,15 +22,14 @@ typedef struct Client
     struct bufferevent *bev;
     struct sockaddr_in sin;
     GtkWidget *statusButton;
+    GtkWidget *authenticationTextLog;
     GtkWidget *plainTextLog;
     GtkWidget *cipherTextLog;
     GtkWidget *sharedKey;
     int authState;
     Key *sessionKey;
     Key *sharedPrivateKey;
-    Key *privateKey;
-    Key *publicKey;
-    char *nonce;
+    Nonce *nonce;
 } Client;
 
 struct Client* client_init_new(
@@ -39,7 +38,8 @@ struct Client* client_init_new(
     GtkWidget *cipherTextLog,
     GtkWidget *portNumber,
     GtkWidget *clientName,
-    GtkWidget *sharedKey
+    GtkWidget *sharedKey,
+    GtkWidget* authenticationTextLog
 );
 
 void client_send(struct Client *client, const char *msg);
