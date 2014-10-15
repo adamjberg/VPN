@@ -30,7 +30,7 @@ void server_send(Server *this, const char *msg)
     {
         char encryptedMessage[1024] = {};
         char buf[1024] = {};
-        encrypt((char *)msg, encryptedMessage, this->sessionKey);
+        encrypt_with_key((char *)msg, encryptedMessage, this->sessionKey);
         sprintf(buf, "Server: %s", msg);
         writeLine(this->plainTextLog, buf);
         writeHex(this->cipherTextLog, "Server: ", encryptedMessage, strlen(encryptedMessage));
@@ -83,7 +83,7 @@ void serverReadStateAuthenticated(Server *this)
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         char decryptedMessage[1024] = {};
         char buf[1024] = {};
-        decrypt(line, decryptedMessage, this->sessionKey);
+        decrypt_with_key(line, decryptedMessage, this->sessionKey);
         writeHex(this->cipherTextLog, "Client: ", line, strlen(line));
         sprintf(buf, "Client: %s", decryptedMessage);
         writeLine(this->plainTextLog, buf);
@@ -105,7 +105,7 @@ void serverReadStateTestAuthentication(Server *this)
     writeHex(this->authenticationTextLog, "Client: Encrypted message ", line, strlen(line));
 
     char decryptedMessage[1024] = {};
-    decrypt(line, decryptedMessage, this->sharedPrivateKey);
+    decrypt_with_key(line, decryptedMessage, this->sharedPrivateKey);
 
     char *sender = strtok(decryptedMessage, "\n");
     char *returnedNonce = strtok(NULL, "\n");
@@ -168,7 +168,7 @@ void serverReadStateNoAuthentication(Server *this)
     writeHex(this->authenticationTextLog, "Server: My unencrypted message is ", messageToEncrypt, strlen(messageToEncrypt));
 
     char encryptedMessage[30] = {};
-    encrypt(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
+    encrypt_with_key(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
 
     writeHex(this->authenticationTextLog, "Server: My encrypted message is ", encryptedMessage, strlen(encryptedMessage));
 

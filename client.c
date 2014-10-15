@@ -61,7 +61,7 @@ void clientReadStateAuthenticated(Client *this)
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         char decryptedMessage[1024] = {};
         char outputBuf[1024] = {};
-        decrypt(line, decryptedMessage, this->sessionKey);
+        decrypt_with_key(line, decryptedMessage, this->sessionKey);
         writeHex(this->cipherTextLog, "Server: ", line, strlen(line));
         sprintf(outputBuf, "Server: %s", decryptedMessage);
         writeLine(this->plainTextLog, outputBuf);
@@ -96,7 +96,7 @@ void clientReadStateNoAuthentication(Client *this)
     writeLine(this->authenticationTextLog, buf2);
 
     char decryptedMessage[30] = {};
-    decrypt(line, decryptedMessage,this->sharedPrivateKey);
+    decrypt_with_key(line, decryptedMessage,this->sharedPrivateKey);
     free(line);
 
     char *sender = strtok(decryptedMessage, "\n");
@@ -123,7 +123,7 @@ void clientReadStateNoAuthentication(Client *this)
             writeHex(this->authenticationTextLog, "Client: ", messageToEncrypt, strlen(messageToEncrypt));
 
             char encryptedMessage[30] = {};
-            encrypt(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
+            encrypt_with_key(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
 
             writeHex(this->authenticationTextLog, "Client: ", encryptedMessage, strlen(encryptedMessage));
 
@@ -176,7 +176,7 @@ void client_send(Client* this, const char *msg)
     if(this->sessionKey != NULL)
     {
         char encryptedMessage[1024] = {};
-        encrypt((char *)msg, encryptedMessage, this->sessionKey);
+        encrypt_with_key((char *)msg, encryptedMessage, this->sessionKey);
         char buf[1024] = {};
         sprintf(buf, "Client: %s", msg);
         writeLine(this->plainTextLog, buf);
