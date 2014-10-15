@@ -172,11 +172,11 @@ void serverReadStateNoAuthentication(Server *this)
     writeHex(this->authenticationTextLog, "Server: My encrypted message is ", encryptedMessage, strlen(encryptedMessage));
 
     char fullMessage[30] = {};
-    sprintf(fullMessage, "%s\r\n%s", this->nonce->bytes, encryptedMessage);
+    int fullMessageLength = sprintf(fullMessage, "%s\r\n%s\r\n", this->nonce->bytes, encryptedMessage);
 
-    writeHex(this->authenticationTextLog, "Server: Sending data ", fullMessage, strlen(fullMessage));
+    writeHex(this->authenticationTextLog, "Server: Sending data ", fullMessage, fullMessageLength);
 
-    server_send(this, fullMessage);
+    server_send_data(this, fullMessage, fullMessageLength);
 
     this->authState = AUTH_STATE_TEST;
 }
