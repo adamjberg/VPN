@@ -41,7 +41,7 @@ void encrypt_with_key(char *in, char *out, Key *key)
 
     BF_set_key(bf_key, key->length, (const unsigned char *)key->data );
 
-    BF_cfb64_encrypt_with_key((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_ENCRYPT);
+    BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_ENCRYPT);
 }
 
 void decrypt_with_key(char *in, char *out, Key *key)
@@ -52,7 +52,7 @@ void decrypt_with_key(char *in, char *out, Key *key)
 
     BF_set_key(bf_key, key->length, (const unsigned char *)key->data );
 
-    BF_cfb64_encrypt_with_key((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_DECRYPT);
+    BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_DECRYPT);
 }
 
 Nonce *get_nonce()
