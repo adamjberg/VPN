@@ -58,7 +58,7 @@ void clientReadStateAuthenticated(Client *this)
     char *line;
     size_t n;
     input = bufferevent_get_input(this->bev);
-    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_CRLF_STRICT))) {
         char decryptedMessage[1024] = {};
         char outputBuf[1024] = {};
         decrypt_with_key(line, decryptedMessage, this->sessionKey);
@@ -81,15 +81,14 @@ void clientReadStateNoAuthentication(Client *this)
     input = bufferevent_get_input(this->bev);
 
     // Rb
-    char *serverNonce;
-    serverNonce = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    char *serverNonce = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF_STRICT);
 
     getHex(serverNonce, buf1, NONCE_SIZE);
     sprintf(buf2, "Server: My nonce is %s", buf1);
     writeLine(this->authenticationTextLog, buf2);
 
     // Encrypted message
-    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF_STRICT);
 
     getHex(line, buf1, len);
     sprintf(buf2, "Server: My encrypted message is %s", buf1);
@@ -99,9 +98,9 @@ void clientReadStateNoAuthentication(Client *this)
     decrypt_with_key(line, decryptedMessage,this->sharedPrivateKey);
     free(line);
 
-    char *sender = strtok(decryptedMessage, "\n");
-    char *returnedNonce = strtok(NULL, "\n");
-    char *serverDiffieHellmanValue = strtok(NULL, "\n");
+    char *sender = strtok(decryptedMessage, "\r\n");
+    char *returnedNonce = strtok(NULL, "\r\n");
+    char *serverDiffieHellmanValue = strtok(NULL, "\r\n");
 
     sprintf(buf1, "Server: I am %s.\nServer: Diffie-Hellman Value is %s.", sender, serverDiffieHellmanValue);
     writeLine(this->authenticationTextLog, buf1);
@@ -118,7 +117,7 @@ void clientReadStateNoAuthentication(Client *this)
 
             char messageToEncrypt[30] = {};
 
-            sprintf(messageToEncrypt, "Client\n%s\n%d\n", serverNonce, clientDiffieHellmanVal);
+            sprintf(messageToEncrypt, "Client\r\n%s\r\n%d", serverNonce, clientDiffieHellmanVal);
 
             writeHex(this->authenticationTextLog, "Client: ", messageToEncrypt, strlen(messageToEncrypt));
 
@@ -181,11 +180,11 @@ void client_send(Client* this, const char *msg)
         sprintf(buf, "Client: %s", msg);
         writeLine(this->plainTextLog, buf);
         writeHex(this->cipherTextLog, "Client: ", encryptedMessage, strlen(encryptedMessage));
-        evbuffer_add_printf(output, "%s\n", encryptedMessage);
+        evbuffer_add_printf(output, "%s\r\n", encryptedMessage);
     }
     else
     {
-        evbuffer_add_printf(output, "%s\n", msg);
+        evbuffer_add_printf(output, "%s\r\n", msg);
     }
 }
 
