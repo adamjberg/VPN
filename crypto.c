@@ -11,7 +11,7 @@
 
 int get_random_int(int range)
 {
-    return rand() % range;
+    return rand() % range + 1;
 }
 
 int get_random_prime()

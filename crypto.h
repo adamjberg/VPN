@@ -9,7 +9,7 @@
 #define DIFFIE_HELLMAN_G 2
 #define DIFFIE_HELLMAN_P 11
 
-#define DIFFIE_HELLMAN_EXP_RANGE 10
+#define DIFFIE_HELLMAN_EXP_RANGE 9
 
 typedef struct Key
 {

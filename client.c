@@ -115,13 +115,13 @@ void clientReadStateNoAuthentication(Client *this)
             sprintf(buf1, "Client: g^a mod p: %d with a: %d", clientDiffieHellmanVal, this->secretA);
             writeLine(this->authenticationTextLog, buf1);
 
-            char messageToEncrypt[30] = {};
+            char messageToEncrypt[1024] = {};
 
             sprintf(messageToEncrypt, "Client\r\n%s\r\n%d", serverNonce, clientDiffieHellmanVal);
 
             writeHex(this->authenticationTextLog, "Client: ", messageToEncrypt, strlen(messageToEncrypt));
 
-            char encryptedMessage[30] = {};
+            char encryptedMessage[1024] = {};
             encrypt_with_key(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
 
             writeHex(this->authenticationTextLog, "Client: ", encryptedMessage, strlen(encryptedMessage));
@@ -132,7 +132,7 @@ void clientReadStateNoAuthentication(Client *this)
 
             // This will be the key used for communication in the future
             int sessionKeyInt = (int) pow(dhVal, this->secretA) % DIFFIE_HELLMAN_P;
-            char sessionKeyString[20] = {};
+            char sessionKeyString[1024] = {};
             sprintf(sessionKeyString, "%d", sessionKeyInt);
 
             this->sessionKey = key_init_new();

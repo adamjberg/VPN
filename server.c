@@ -157,21 +157,21 @@ void serverReadStateNoAuthentication(Server *this)
 
     this->secretB = get_random_int(DIFFIE_HELLMAN_EXP_RANGE);
     int diffieHellmanVal = (int) pow(DIFFIE_HELLMAN_G, this->secretB) % DIFFIE_HELLMAN_P;
-    char output[30] = {};
+    char output[1024] = {};
     sprintf(output, "Server: g^b mod p: %d with b: %d", diffieHellmanVal, this->secretB);
     writeLine(this->authenticationTextLog, output);
 
-    char messageToEncrypt[30] = {};
+    char messageToEncrypt[1024] = {};
     sprintf(messageToEncrypt, "Server\r\n%s\r\n%d", clientNonce, diffieHellmanVal);
 
     writeHex(this->authenticationTextLog, "Server: My unencrypted message is ", messageToEncrypt, strlen(messageToEncrypt));
 
-    char encryptedMessage[30] = {};
+    char encryptedMessage[1024] = {};
     encrypt_with_key(messageToEncrypt, encryptedMessage, this->sharedPrivateKey);
 
     writeHex(this->authenticationTextLog, "Server: My encrypted message is ", encryptedMessage, strlen(encryptedMessage));
 
-    char fullMessage[30] = {};
+    char fullMessage[1024] = {};
     int fullMessageLength = sprintf(fullMessage, "%s\r\n%s\r\n", this->nonce->bytes, encryptedMessage);
 
     writeHex(this->authenticationTextLog, "Server: Sending data ", fullMessage, fullMessageLength);
