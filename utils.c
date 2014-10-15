@@ -5,9 +5,10 @@
 void getHex(char *bytes, char *hex, int len)
 {
     int i;
+    int pos = 0;
     for( i = 0; i < len; i++)
     {
-        sprintf(&hex[i*2], "%02X", bytes[i]);
+        pos += sprintf(&hex[pos], "%02X ", (unsigned char) bytes[i]);
     }
 }
 
@@ -19,10 +20,11 @@ void writeHex(GtkWidget *textView, char *prefixText, char *textAsHex, int length
     gtk_text_buffer_get_start_iter(buffer, &iter);
 
     int i;
+    int pos = 0;
     for(i = 0; i<length; i++){
-        sprintf(outText+i*2, "%02X", textAsHex[i]);
+        pos += sprintf(&outText[pos], "%02X ", (unsigned char) textAsHex[i]);
     }
-    sprintf(outText+i*2, "\n");
+    sprintf(&outText[pos], "\n");
     gtk_text_buffer_insert(buffer, &iter, prefixText, strlen(prefixText));
     gtk_text_buffer_insert(buffer, &iter, outText, strlen(outText));
 }
