@@ -13,8 +13,6 @@
 #define AUTH_STATE_TEST 1
 #define AUTH_STATE_AUTHENTICATED 2
 
-#define B 7
-
 typedef struct Server
 {
     struct event_base *eventBase;
@@ -31,6 +29,7 @@ typedef struct Server
     Key *sessionKey;
     Key *sharedPrivateKey;
     Nonce *nonce;
+    unsigned int secretB;
 } Server;
 
 struct Server* server_init_new(

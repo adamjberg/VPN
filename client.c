@@ -111,7 +111,8 @@ void clientReadStateNoAuthentication(Client *this)
     {
         if(are_nonce_bytes_equal(this->nonce->bytes, returnedNonce))
         {
-            int clientDiffieHellmanVal = (int) pow(DIFFIE_HELLMAN_G, SECRET_A) % DIFFIE_HELLMAN_P;
+            this->secretA = get_random_int(DIFFIE_HELLMAN_EXP_RANGE);
+            int clientDiffieHellmanVal = (unsigned int) pow(DIFFIE_HELLMAN_G, this->secretA) % DIFFIE_HELLMAN_P;
             sprintf(buf1, "Client: g^a mod p: %d", clientDiffieHellmanVal);
             writeLine(this->authenticationTextLog, buf1);
 
@@ -131,7 +132,7 @@ void clientReadStateNoAuthentication(Client *this)
             int dhVal = atoi(serverDiffieHellmanValue);
 
             // This will be the key used for communication in the future
-            int sessionKeyInt = (int) pow(dhVal, SECRET_A);
+            unsigned int sessionKeyInt = (unsigned int) pow(dhVal, this->secretA);
             char sessionKeyString[20] = {};
             sprintf(sessionKeyString, "%d", sessionKeyInt);
 
@@ -142,6 +143,7 @@ void clientReadStateNoAuthentication(Client *this)
             writeHex(this->authenticationTextLog, "Client: Calculated session key is ", this->sessionKey->data, this->sessionKey->length);
 
             this->authState = AUTH_STATE_AUTHENTICATED;
+            this->secretA = 0;
         }
     }
 }

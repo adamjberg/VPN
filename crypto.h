@@ -7,12 +7,14 @@
 #define KEY_BITS 1024
 #define NONCE_SIZE 2
 
-#define DIFFIE_HELLMAN_G 10
-#define DIFFIE_HELLMAN_P 541
+#define DIFFIE_HELLMAN_G 2
+#define DIFFIE_HELLMAN_P 11
 
 // This will change if bits changes
 #define PUBLIC_KEY_LENGTH 270
 #define PRIVATE_KEY_LENGTH 1191
+
+#define DIFFIE_HELLMAN_EXP_RANGE 9
 
 typedef struct Key
 {
@@ -26,6 +28,8 @@ typedef struct Nonce
     char hex[NONCE_SIZE * 2];
 } Nonce;
 
+int get_random_int(int range);
+int get_random_prime();
 char * get_md5_hash(char *textToHash, long len);
 void encrypt(char *in, char *out, struct Key *key);
 void decrypt(char *in, char *out, struct Key *key);

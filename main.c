@@ -266,6 +266,8 @@ int main (int argc, char *argv[])
 {
     initGUI(argc, argv);
 
+    srand(time(NULL));
+
     gtk_main ();
 
     return 0;

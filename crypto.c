@@ -1,4 +1,6 @@
 #include "crypto.h"
+#include <openssl/bio.h>
+#include <openssl/bn.h>
 #include <openssl/md5.h>
 #include <openssl/rand.h>
 #include <openssl/blowfish.h>
@@ -6,6 +8,23 @@
 #include <gtk/gtk.h>
 
 #include "utils.h"
+
+int get_random_int(int range)
+{
+    return rand() % range;
+}
+
+int get_random_prime()
+{
+    char *s;
+    BIGNUM *bn = BN_new();
+    BN_generate_prime_ex(bn, 32, 1, NULL, NULL, NULL);
+    s = BN_bn2hex(bn);
+    unsigned int prime = strtol(s, NULL, 16);
+    free(s);
+    BN_free(bn);
+    return prime;
+}
 
 char *get_md5_hash(char *textToHash, long len)
 {
@@ -20,7 +39,7 @@ void encrypt(char *in, char *out, Key *key)
     unsigned char ivec[8] = {};
     BF_KEY *bf_key = malloc(sizeof(BF_KEY));
 
-    BF_set_key(bf_key, key->length, (const unsigned char*)key->data );
+    BF_set_key(bf_key, key->length, (const unsigned char *)key->data );
 
     BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_ENCRYPT);
 }
@@ -31,12 +50,12 @@ void decrypt(char *in, char *out, Key *key)
     unsigned char ivec[8] = {};
     BF_KEY *bf_key = malloc(sizeof(BF_KEY));
 
-    BF_set_key(bf_key, key->length, (const unsigned char*)key->data );
+    BF_set_key(bf_key, key->length, (const unsigned char *)key->data );
 
     BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_DECRYPT);
 }
 
-Nonce * get_nonce()
+Nonce *get_nonce()
 {
     Nonce *nonce = malloc(sizeof(Nonce));
     RAND_bytes((unsigned char *)&nonce->bytes, NONCE_SIZE - 1);
@@ -48,9 +67,9 @@ Nonce * get_nonce()
 gboolean are_nonce_bytes_equal(char *nonce1, char *nonce2)
 {
     int i;
-    for(i = 0; i < NONCE_SIZE; i++)
+    for (i = 0; i < NONCE_SIZE; i++)
     {
-        if(nonce1[i] != nonce2[i])
+        if (nonce1[i] != nonce2[i])
         {
             return FALSE;
         }
