@@ -123,7 +123,7 @@ void serverReadStateTestAuthentication(Server *this)
             int dhVal = atoi(clientDiffieHellmanValue);
 
             // This will be the key used for communication in the future
-            int sessionKeyInt = (int) pow(dhVal, this->secretB);
+            int sessionKeyInt = (int) pow(dhVal, this->secretB) % DIFFIE_HELLMAN_P;
             this->secretB = 0;
             char sessionKeyString[20] = {};
             sprintf(sessionKeyString, "%d", sessionKeyInt);
@@ -159,7 +159,7 @@ void serverReadStateNoAuthentication(Server *this)
     this->secretB = get_random_int(DIFFIE_HELLMAN_EXP_RANGE);
     int diffieHellmanVal = (int) pow(DIFFIE_HELLMAN_G, this->secretB) % DIFFIE_HELLMAN_P;
     char output[30] = {};
-    sprintf(output, "Server: g^b mod p: %d", diffieHellmanVal);
+    sprintf(output, "Server: g^b mod p: %d with b: %d", diffieHellmanVal, this->secretB);
     writeLine(this->authenticationTextLog, output);
 
     char messageToEncrypt[30] = {};

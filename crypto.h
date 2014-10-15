@@ -4,17 +4,12 @@
 #include <stdbool.h>
 #include <gtk/gtk.h>
 
-#define KEY_BITS 1024
 #define NONCE_SIZE 2
 
 #define DIFFIE_HELLMAN_G 2
 #define DIFFIE_HELLMAN_P 11
 
-// This will change if bits changes
-#define PUBLIC_KEY_LENGTH 270
-#define PRIVATE_KEY_LENGTH 1191
-
-#define DIFFIE_HELLMAN_EXP_RANGE 9
+#define DIFFIE_HELLMAN_EXP_RANGE 10
 
 typedef struct Key
 {

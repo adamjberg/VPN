@@ -112,8 +112,8 @@ void clientReadStateNoAuthentication(Client *this)
         if(are_nonce_bytes_equal(this->nonce->bytes, returnedNonce))
         {
             this->secretA = get_random_int(DIFFIE_HELLMAN_EXP_RANGE);
-            int clientDiffieHellmanVal = (unsigned int) pow(DIFFIE_HELLMAN_G, this->secretA) % DIFFIE_HELLMAN_P;
-            sprintf(buf1, "Client: g^a mod p: %d", clientDiffieHellmanVal);
+            int clientDiffieHellmanVal = (int) pow(DIFFIE_HELLMAN_G, this->secretA) % DIFFIE_HELLMAN_P;
+            sprintf(buf1, "Client: g^a mod p: %d with a: %d", clientDiffieHellmanVal, this->secretA);
             writeLine(this->authenticationTextLog, buf1);
 
             char messageToEncrypt[30] = {};
@@ -132,7 +132,7 @@ void clientReadStateNoAuthentication(Client *this)
             int dhVal = atoi(serverDiffieHellmanValue);
 
             // This will be the key used for communication in the future
-            unsigned int sessionKeyInt = (unsigned int) pow(dhVal, this->secretA);
+            int sessionKeyInt = (int) pow(dhVal, this->secretA) % DIFFIE_HELLMAN_P;
             char sessionKeyString[20] = {};
             sprintf(sessionKeyString, "%d", sessionKeyInt);
 

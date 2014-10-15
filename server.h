@@ -29,7 +29,7 @@ typedef struct Server
     Key *sessionKey;
     Key *sharedPrivateKey;
     Nonce *nonce;
-    unsigned int secretB;
+    int secretB;
 } Server;
 
 struct Server* server_init_new(

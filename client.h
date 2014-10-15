@@ -28,7 +28,7 @@ typedef struct Client
     Key *sessionKey;
     Key *sharedPrivateKey;
     Nonce *nonce;
-    unsigned int secretA;
+    int secretA;
 } Client;
 
 struct Client* client_init_new(
