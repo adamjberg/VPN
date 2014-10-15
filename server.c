@@ -308,8 +308,6 @@ struct Server* server_init_new(
     this->listener_event = event_new(this->eventBase, this->listener, EV_READ | EV_PERSIST, server_do_accept, (void *)this);
     event_add(this->listener_event, NULL);
 
-    g_idle_add((GSourceFunc)server_event_loop, this);
-
     gtk_button_set_label(GTK_BUTTON(this->statusButton), "Running");
 
     return this;

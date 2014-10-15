@@ -264,8 +264,6 @@ Client* client_init_new(
         return NULL;
     }
 
-    g_idle_add((GSourceFunc)client_event_loop, this);
-
     return this;
 }
 

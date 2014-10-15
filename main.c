@@ -43,6 +43,9 @@ GtkWidget *sharedKey;
 GtkWidget *sharedKeyLabel;
 GtkWidget *serverStatusButton;
 GtkWidget *clientStatusButton;
+GtkWidget *continueButtonsHBox;
+GtkWidget *continueButton;
+GtkWidget *autoContinueButton;
 
 Server *server;
 Client *client;
@@ -144,6 +147,39 @@ void onSendButtonClicked(GtkWidget *widget, gpointer data)
     }
 }
 
+void onContinuePressed(GtkWidget *widget, gpointer data)
+{
+    if(client != NULL)
+    {
+        client_event_loop(client);
+    }
+    else if(server != NULL)
+    {
+        server_event_loop(server);
+    }
+}
+
+gint timoutFunc;
+void onAutoContinueStatusChanged(GtkWidget *widget, gpointer data)
+{
+    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+    {
+        if(client != NULL)
+        {
+            timoutFunc = g_timeout_add_seconds(1, (GSourceFunc)client_event_loop, client);
+        }
+        else if(server != NULL)
+        {
+            timoutFunc = g_timeout_add_seconds(1, (GSourceFunc)server_event_loop, server);
+        }
+       
+    }
+    else
+    {
+        g_source_remove(timoutFunc);
+    }
+}
+
 void initGUI(int argc, char *argv[])
 {
     gtk_init (&argc, &argv);
@@ -158,6 +194,7 @@ void initGUI(int argc, char *argv[])
     clientServerModeHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
     messageHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
     serverDetailsHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+    continueButtonsHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
 
     modeLabel = gtk_label_new("Mode:");
 
@@ -186,6 +223,8 @@ void initGUI(int argc, char *argv[])
     sharedKeyLabel = gtk_label_new("Shared key:");
 
     messageSendButton = gtk_button_new_with_label("Send");
+    continueButton = gtk_button_new_with_label("Continue");
+    autoContinueButton = gtk_toggle_button_new_with_label("Auto Continue");
 
     scrolledAuthenticationWindow = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(scrolledAuthenticationWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
@@ -222,6 +261,8 @@ void initGUI(int argc, char *argv[])
     g_signal_connect (messageSendButton, "clicked", G_CALLBACK(onSendButtonClicked), NULL);
     g_signal_connect(serverStatusButton, "toggled", G_CALLBACK(onServerStatusChanged), NULL);
     g_signal_connect(clientStatusButton, "toggled", G_CALLBACK(onClientStatusChanged), NULL);
+    g_signal_connect(continueButton, "clicked", G_CALLBACK(onContinuePressed), NULL);
+    g_signal_connect(autoContinueButton, "toggled", G_CALLBACK(onAutoContinueStatusChanged), NULL);
 
     gtk_container_add (GTK_CONTAINER(window), vBox);
 
@@ -241,9 +282,13 @@ void initGUI(int argc, char *argv[])
     gtk_box_pack_start (GTK_BOX(messageHBox), messageEntry, TRUE, TRUE, 1);
     gtk_box_pack_start (GTK_BOX(messageHBox), messageSendButton, FALSE, FALSE, 1);
 
+    gtk_box_pack_start (GTK_BOX(continueButtonsHBox), continueButton, TRUE, TRUE, 1);
+    gtk_box_pack_start (GTK_BOX(continueButtonsHBox), autoContinueButton, TRUE, TRUE, 1);
+
     gtk_container_add (GTK_CONTAINER(vBox), clientServerModeHBox);
     gtk_container_add (GTK_CONTAINER(vBox), serverDetailsHBox);
     gtk_container_add (GTK_CONTAINER(vBox), messageHBox);
+    gtk_container_add (GTK_CONTAINER(vBox), continueButtonsHBox);
 
     gtk_container_add (GTK_CONTAINER(vBox), authenticationTextLogLabel);
     gtk_container_add(GTK_CONTAINER(scrolledAuthenticationWindow), authenticationTextLog);

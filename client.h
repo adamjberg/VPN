@@ -44,6 +44,7 @@ struct Client* client_init_new(
 void client_send(struct Client *client, const char *msg);
 void client_send_data(Client *this, const void *data, size_t size);
 void client_free(struct Client *client);
+gboolean client_event_loop(struct Client* server);
 void clientReadStateAuthenticated(struct Client *client);
 void clientReadStateNoAuthentication(struct Client *client);
 void clientReadStateTestAuthentication(struct Client *client);
