@@ -18,6 +18,9 @@
 
 #define MAX_LINE 16384
 
+/**
+ * Process any events in the event queue
+*/
 gboolean client_event_loop(Client* this)
 {
     if(this != NULL && this->base != NULL)
@@ -36,6 +39,10 @@ void set_tcp_no_delay(evutil_socket_t fd)
     evutil_make_socket_nonblocking(fd);
 }
 
+/**
+ * Callback for when there is data in the buffer
+ * Calls different functions based on the authentication status
+*/
 void client_readcb(struct bufferevent *bev, void *ctx)
 {
     Client *this = ctx;
@@ -141,12 +148,19 @@ void clientReadStateNoAuthentication(Client *this)
 
             writeHex(this->authenticationTextLog, "Client: Calculated session key is ", this->sessionKey->data, this->sessionKey->length);
 
+            // The server successfully proved that it is actually the server
+            // We can now trust it
             this->authState = AUTH_STATE_AUTHENTICATED;
             this->secretA = 0;
         }
     }
 }
 
+/**
+ * Called when the initial connection to the server is made
+ * When we connect, we start the authentication process by sending
+ * the client's nonce
+*/
 void client_eventcb(struct bufferevent *bev, short events, void *ptr)
 {
     Client *this = ptr;
@@ -169,6 +183,9 @@ void client_eventcb(struct bufferevent *bev, short events, void *ptr)
     }
 }
 
+/**
+ * Helper function to send a message to the Server
+ */ 
 void client_send(Client* this, const char *msg)
 {
     struct evbuffer *output = bufferevent_get_output(this->bev);
@@ -188,6 +205,9 @@ void client_send(Client* this, const char *msg)
     }
 }
 
+/**
+ * Helper function to send data (this may not be valid ASCII) to the Server
+ */ 
 void client_send_data(Client *this, const void *data, size_t size)
 {
     if(this != NULL && this->bev != NULL)
@@ -200,6 +220,11 @@ void client_send_data(Client *this, const void *data, size_t size)
     }
 }
 
+/**
+ * Initializes the client
+ * connects to the server's TCP socket
+ * Sets up events to work asynchronously
+ */
 Client* client_init_new(
     GtkWidget *statusButton,
     GtkWidget *plainTextLog,
@@ -266,6 +291,9 @@ Client* client_init_new(
     return this;
 }
 
+/**
+ * Free up data allocated in client
+ */
 void client_free(Client *this)
 {
     gtk_button_set_label(GTK_BUTTON(this->statusButton), "Connect!");

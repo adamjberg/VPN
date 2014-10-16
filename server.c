@@ -23,6 +23,9 @@
 
 #define MAX_LINE 16384
 
+/**
+ * Helper function to send message to the Client
+ */ 
 void server_send(Server *this, const char *msg)
 {
     struct evbuffer *output = bufferevent_get_output(this->bev);
@@ -42,6 +45,9 @@ void server_send(Server *this, const char *msg)
     }
 }
 
+/**
+ * Helper function to send data (this may not be valid ASCII) to the Client
+ */ 
 void server_send_data(Server *this, const void *data, size_t size)
 {
     if(this != NULL && this->bev != NULL)
@@ -54,8 +60,11 @@ void server_send_data(Server *this, const void *data, size_t size)
     }
 }
 
-void
-server_readcb(struct bufferevent *bev, void *ctx)
+/**
+ * Callback for when there is data in the buffer
+ * Calls different functions based on the authentication status
+*/
+void server_readcb(struct bufferevent *bev, void *ctx)
 {
     Server *this = ctx;
 
@@ -178,6 +187,8 @@ void serverReadStateNoAuthentication(Server *this)
 
     server_send_data(this, fullMessage, fullMessageLength);
 
+    // We have proven to the client who we are
+    // Now we must check whether the client is who we think it is
     this->authState = AUTH_STATE_TEST;
 }
 
@@ -194,6 +205,10 @@ void server_errorcb(struct bufferevent *bev, short error, void *ctx)
     bufferevent_free(bev);
 }
 
+/**
+ * Callback to accept a connection
+ * Here we create a new socket to handle further communications
+ */
 void server_do_accept(evutil_socket_t listener, short event, void *arg)
 {
     Server *this = arg;
@@ -227,6 +242,9 @@ void server_do_accept(evutil_socket_t listener, short event, void *arg)
     }
 }
 
+/**
+ * Process any events in the event queue
+*/
 gboolean server_event_loop(Server* server)
 {
     if(server != NULL && server->eventBase != NULL)
@@ -237,6 +255,11 @@ gboolean server_event_loop(Server* server)
     return FALSE;
 }
 
+/**
+ * Initializes the Server
+ * Opens a TCP socket
+ * Sets up events to work asynchronously
+ */
 struct Server* server_init_new(
     GtkWidget *statusButton,
     GtkWidget *plainTextLog,
@@ -312,6 +335,9 @@ struct Server* server_init_new(
     return this;
 }
 
+/**
+ * Free up data allocated in Server
+ */
 void server_free(Server *this)
 {
     if(this == NULL)

@@ -2,6 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+/**
+ * Puts the hex representation of bytes into hex
+*/
 void getHex(char *bytes, char *hex, int len)
 {
     int i;
@@ -12,6 +15,9 @@ void getHex(char *bytes, char *hex, int len)
     }
 }
 
+/**
+ * Displays textAsHex as hex values in the textView
+*/
 void writeHex(GtkWidget *textView, char *prefixText, char *textAsHex, int length)
 {
     char outText[length * 2 + 1];
@@ -29,6 +35,9 @@ void writeHex(GtkWidget *textView, char *prefixText, char *textAsHex, int length
     gtk_text_buffer_insert(buffer, &iter, outText, strlen(outText));
 }
 
+/**
+ * Helper function to write a line to textView
+*/
 void writeLine(GtkWidget *textView, const char *text)
 {
     GtkTextIter iter;

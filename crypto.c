@@ -33,6 +33,9 @@ char *get_md5_hash(char *textToHash, long len)
     return out;
 }
 
+/**
+ * Encrypts the in text using the key with the Blowfish cipher
+*/
 void encrypt_with_key(char *in, char *out, Key *key)
 {
     int num = 0;
@@ -44,6 +47,9 @@ void encrypt_with_key(char *in, char *out, Key *key)
     BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_ENCRYPT);
 }
 
+/**
+ * Decrypts the in text using the key with the Blowfish cipher
+*/
 void decrypt_with_key(char *in, char *out, Key *key)
 {
     int num = 0;
@@ -55,6 +61,10 @@ void decrypt_with_key(char *in, char *out, Key *key)
     BF_cfb64_encrypt((unsigned char *)in, (unsigned char *)out, strlen(in), bf_key, ivec, &num, BF_DECRYPT);
 }
 
+/**
+ * Returns a random set of bytes
+ * This is currently just one byte, but could be more for more randomness
+*/
 Nonce *get_nonce()
 {
     Nonce *nonce = malloc(sizeof(Nonce));
